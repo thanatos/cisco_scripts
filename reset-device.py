@@ -25,6 +25,7 @@ import string
 import sys
 import time
 
+import common
 import ioctrl
 import terminal
 
@@ -53,36 +54,10 @@ def wait_for_prompt(lines, partial, my_data):
         return (True, None, my_data)
     return (False, None, my_data)
 
-def skip_initial_conf_dialog(ctrl):
-    while 1:
-        lines, part = ctrl.grab_lines()
-        if len(part) > 0 and (part[-1] == ">" or part[-1] == "#"):
-            break
-        if string.find(part, "Would you like to enter the initial configuration dialog?") != -1:
-            ctrl.do_send("no\r")
-
-def device_login(ctrl, password):
-    ctrl.wait_for_partial("Password: ")
-    
-    print "Reached password point."
-    ctrl.do_send(password + "\n")
-    ctrl.wait_for_line("Password OK\r");
-    print "Password accepted."
-    
-    print "Sleeping for device."
-    time.sleep(1)
-    
-    print "Sending newlines."
-    ctrl.do_send("\r\n")
-    
-    skip_initial_conf_dialog(ctrl)
-    
-    ctrl.do_send("enable\n")
-
 def reset_device(ip, port, password):
     ctrl = ioctrl.IoController(ip, port)
     
-    device_login(ctrl, password)
+    common.device_login(ctrl, password)
     
     ctrl.do_send("dir\n")
     
@@ -109,7 +84,7 @@ def reset_device(ip, port, password):
     ctrl.wait_for_line("Press RETURN to get started!\r")
     ctrl.do_send("\r\n")
     
-    skip_initial_conf_dialog(ctrl)
+    common.skip_initial_conf_dialog(ctrl)
     
     ctrl.close()
 
@@ -118,6 +93,6 @@ if __name__ == "__main__":
         print "Usage:"
         print "\treset-device.py hostname port password"
     else:
-        reset_device(int(sys.argv[1]), int(sys.argv[2]), sys.argv[3])
+        reset_device(sys.argv[1], int(sys.argv[2]), sys.argv[3])
 
 
