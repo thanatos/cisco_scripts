@@ -20,59 +20,13 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-import sys
 import socket
 import string
+import sys
 import time
 
+import ioctrl
 import terminal
-
-class IoController:
-    def __init__(self, ip, port):
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.sock.connect((ip, port))
-        self.lines = []
-        self.partial = ""
-    
-    def grab_lines(self):
-        data = self.partial + self.sock.recv(4096)
-        got_lines = string.split(data, "\n")
-        for l in got_lines[:-1]:
-            terminal.show_line("in", l)
-            self.lines.append(l)
-        self.partial = got_lines[-1]
-        return (got_lines[:-1], got_lines[-1])
-    
-    def do_send(self, data):
-        lines = string.split(data, "\n")
-        if lines[-1] == "":
-            lines = lines[:-1]
-        for l in lines:
-            terminal.show_line("out", l+"\n")
-        self.sock.sendall(data)
-    
-    def wait_for_partial(self, partial_text):
-        while 1:
-            self.grab_lines()
-            if self.partial == partial_text:
-                break
-    
-    def wait_for_line(self, line_text):
-        while 1:
-            glines, gpartial = self.grab_lines()
-            for l in glines:
-                if l == line_text:
-                    return glines, gpartial
-    
-    def wait_for_special(self, callback, my_data):
-        while 1:
-            new_lines, new_partial = self.grab_lines()
-            cont, ret, my_data = callback(new_lines, new_partial, my_data)
-            if cont == False:
-                return ret
-    
-    def close(self):
-        self.sock.close()
 
 def wait_for_remote(sock, callback):
     while 1:
@@ -126,7 +80,7 @@ def device_login(ctrl, password):
     ctrl.do_send("enable\n")
 
 def reset_device(ip, port, password):
-    ctrl = IoController(ip, port)
+    ctrl = ioctrl.IoController(ip, port)
     
     device_login(ctrl, password)
     
@@ -160,6 +114,10 @@ def reset_device(ip, port, password):
     ctrl.close()
 
 if __name__ == "__main__":
-    reset_device(int(sys.argv[1]), int(sys.argv[2]), sys.argv[3])
+    if len(sys.argv) != 4:
+        print "Usage:"
+        print "\treset-device.py hostname port password"
+    else:
+        reset_device(int(sys.argv[1]), int(sys.argv[2]), sys.argv[3])
 
 
